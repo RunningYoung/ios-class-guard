@@ -1,3 +1,9 @@
+---
+
+__This repository is no longer maintained. Issue reports and pull requests will not be attended.__
+
+---
+
 iOS Class Guard
 =========
 
@@ -7,11 +13,9 @@ iOS-Class-Guard is a command-line utility for obfuscating Objective-C class, pro
 
 Read the official announcement at [Polidea Blog](http://www.polidea.com/#!heartbeat/blog/Protecting_iOS_Applications)
 
-if you need **iOS Class Guard Pro** with more features [click here](#pro-version).
-
 Version
 -----------
-0.7
+0.8
 
 Do I need It?
 -----------
@@ -51,12 +55,12 @@ Installation
 Execute this simple bash script in Terminal. When asked for the password, enter your account. It's needed, because the utility is installed in /usr/local/bin.
 
 ``` sh
-brew install https://raw.githubusercontent.com/Polidea/homebrew/ios-class-guard/Library/Formula/ios-class-guard.rb
+brew install ios-class-guard
 ```
 
 To install bleeding edge version:
 ``` sh
-brew install --HEAD https://raw.githubusercontent.com/Polidea/homebrew/ios-class-guard/Library/Formula/ios-class-guard.rb
+brew install --HEAD ios-class-guard
 ```
 
 How to use it?
@@ -77,6 +81,23 @@ curl -o obfuscate_project https://raw.githubusercontent.com/Polidea/ios-class-gu
 
 The presented way is the simplest one. You can also add additional target that will automatically regenerate the symbols map during compilation.
 
+Pre compiled header file
+-----------
+After obfuscation, iOS-Class-Guard will try to add generated symbols header (`symbols.h`) to your project's `*.pch` file. However, projects created in Xcode 6 and above don't contain `*.pch` file by default. In case your project doesnt have any `*.pch` file, you have to add it manually **before obfuscation**. 
+
+To add `*.pch` file to your project follow the steps below:
+
+1. Create `PCH` file in your project's root directory. In Xcode go to `File -> New -> File -> iOS -> Other -> PCH File`.
+To ensure backward compatibility iOS-Class-Guard will be looking for a file matching the `*-Prefix.pch` mask, as an example `MyProject-Prefix.pch`
+
+
+2. At the target's *Build Settings*, in *Apple LLVM - Language* section, set **Prefix Header** to your PCH file name.
+
+3. At the target's *Build Settings*, in *Apple LLVM - Language* section, set **Precompile Prefix Header** to `YES`.
+
+
+For more details please refer to [this](http://stackoverflow.com/a/24524692/1219382) Stack Overflow question.
+
 Example
 -----------
 You can take a look what changes are required and how it works in some example projects.
@@ -96,7 +117,7 @@ https://github.com/Polidea/ios-class-guard-example/tree/master/SWTableViewCell-o
 Command Line Options
 -----------
 ```
-ios-class-guard 0.7 (64 bit)
+ios-class-guard 0.8 (64 bit)
 Usage: ios-class-guard [options] <mach-o-file>
 
   where options are:
@@ -282,19 +303,6 @@ To fix it, copy `n9z` and search for it in `symbols.h`. Most probably it will be
 Note
 ---
 iOS-Class-Guard works alongside LLVM Obfuscator: https://github.com/obfuscator-llvm/obfuscator. However, this has not been tested.
-
-Pro version
------------
-
-Contact us at [ios-class-guard@polidea.com](mailto:ios-class-guard@polidea.com) if you need iOS Class Guard Pro with more features including:
-* Encryption of strings and constants
-* Tamper detection mechanism
-* Anti-debug mechanism
-* Methods inlining
-* Assets encryption
-* Control flow obfuscation
-* Code virtualization with encryption
-* API method execution hiding
 
 License
 ----
