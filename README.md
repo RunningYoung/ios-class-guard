@@ -1,3 +1,4 @@
+
 ---
 
 __This repository is no longer maintained. Issue reports and pull requests will not be attended.__
@@ -6,6 +7,10 @@ __This repository is no longer maintained. Issue reports and pull requests will 
 
 iOS Class Guard
 =========
+
+**该库针对原有功能进行修改，只混淆指定文件下的Class,Properties,Methods,Categories,Protocols。通过-F XXX* 指定要修改名称**
+
+
 
 iOS-Class-Guard is a command-line utility for obfuscating Objective-C class, protocol, property and method names. It was made as an extension for [class-dump](https://github.com/nygard/class-dump). The utility generates a symbol table which is then included during compilation. It effectively hides most of class, protocol, method, property and i-var names.
 
