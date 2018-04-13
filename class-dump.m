@@ -424,8 +424,8 @@ int main(int argc, char *argv[])
                         [processor obfuscateFilesUsingSymbols:visitor.symbols];
 
                         if (podsPath) {
-                            CDPbxProjectProcessor *projectProcessor = [[CDPbxProjectProcessor alloc] init];
-                            [projectProcessor processPodsProjectAtPath:podsPath symbolsFilePath:symbolsPath];
+//                            CDPbxProjectProcessor *projectProcessor = [[CDPbxProjectProcessor alloc] init];
+//                            [projectProcessor processPodsProjectAtPath:podsPath symbolsFilePath:symbolsPath];
                         }
 
                         CDSymbolMapper *mapper = [[CDSymbolMapper alloc] init];

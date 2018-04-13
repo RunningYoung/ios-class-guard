@@ -26,9 +26,9 @@
         CDPbxProjectParser *parser = [[CDPbxProjectParser alloc] initWithJsonDictionary:projectJSON];
         NSSet *targets = [parser findTargets];
         CDPodsFileProcessor *processor = [[CDPodsFileProcessor alloc] init];
-        for (CDPbxProjectTarget *target in targets) {
-            [processor processTarget:target symbolsFilePath:symbolsPath];
-        }
+//        for (CDPbxProjectTarget *target in targets) {
+//            [processor processTarget:target symbolsFilePath:symbolsPath];
+//        }
     }];
     
     [task launch];

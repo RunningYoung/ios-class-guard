@@ -89,8 +89,8 @@ static NSString *const lettersSet[maxLettersSet] = {
     _uniqueSymbols = [NSMutableSet new];
     _forbiddenNames = [NSMutableSet new];
     _symbolLength = 3;
-    _external = NO;
-    _ignored = NO;
+    _external = YES;
+    _ignored = YES;
     [self addForbiddenSymbols];
 }
 
@@ -273,23 +273,31 @@ static NSString *const lettersSet[maxLettersSet] = {
 }
 
 - (void)generateMethodSymbols:(NSString *)symbolName {
-    NSString *getterName = [self getterNameForMethodName:symbolName];
-    NSString *setterName = [self setterNameForMethodName:symbolName];
+//    NSString *getterName = [self getterNameForMethodName:symbolName];
+//    NSString *setterName = [self setterNameForMethodName:symbolName];
+    
+//    NSLog(@"generateMethodSymbols  00000000 Name :%@",symbolName);
+//    NSLog(@"generateMethodSymbols  00000000 getterName :%@",getterName);
+//    NSLog(@"generateMethodSymbols  00000000 setterName : %@",setterName);
 
-    if ([self doesContainGeneratedSymbol:getterName] && [self doesContainGeneratedSymbol:setterName]) {
+    if ([self doesContainGeneratedSymbol:symbolName]) {
+//        NSLog(@"generateMethodSymbols  11111111");
         return;
     }
-    if ([self shouldSymbolsBeIgnored:getterName] || [self shouldSymbolsBeIgnored:setterName]) {
+    if ([self shouldSymbolsBeIgnored:symbolName] ) {
+//        NSLog(@"generateMethodSymbols  22222222222");
         return;
     }
     if ([self isInitMethod:symbolName]) {
         NSString *initPrefix = @"initL";
+//        NSLog(@"generateMethodSymbols  3333333333333");
         NSString *newSymbolName = [self generateRandomStringWithPrefix:initPrefix length:symbolName.length - initPrefix.length];
         [self addGenerated:newSymbolName forSymbol:symbolName];
     } else {
+//        NSLog(@"generateMethodSymbols  444444444444");
         NSString *newSymbolName = [self generateRandomStringWithLength:symbolName.length];
-        [self addGenerated:newSymbolName forSymbol:getterName];
-        [self addGenerated:[@"set" stringByAppendingString:[newSymbolName capitalizeFirstCharacter]] forSymbol:setterName];
+        [self addGenerated:newSymbolName forSymbol:symbolName];
+//        [self addGenerated:[@"set" stringByAppendingString:[newSymbolName capitalizeFirstCharacter]] forSymbol:setterName];
     }
 }
 
@@ -344,20 +352,24 @@ static NSString *const lettersSet[maxLettersSet] = {
 
 - (void)generatePropertySymbols:(NSString *)propertyName {
     NSArray *symbols = [self symbolsForProperty:propertyName];
-    BOOL shouldSymbolBeIgnored = NO;
-    for (NSString *symbolName in symbols) {
-        if ([self shouldSymbolsBeIgnored:symbolName]) {
-            shouldSymbolBeIgnored = YES;
-            break;
-        }
-    }
-
-    // don't generate symbol if any of the name is forbidden
-    if (shouldSymbolBeIgnored) {
+//    BOOL shouldSymbolBeIgnored = NO;
+//    for (NSString *symbolName in symbols) {
+//        if ([self shouldSymbolsBeIgnored:symbolName]) {
+//            shouldSymbolBeIgnored = YES;
+//            break;
+//        }
+//    }
+    if ([self shouldSymbolsBeIgnored:propertyName]) {
         [_forbiddenNames addObjectsFromArray:symbols];
         return;
     }
 
+//    // don't generate symbol if any of the name is forbidden
+//    if (shouldSymbolBeIgnored) {
+//        [_forbiddenNames addObjectsFromArray:symbols];
+//        return;
+//    }
+//
     NSString *newPropertyName = _symbols[propertyName];
 
     // reuse previously generated symbol
@@ -444,13 +456,13 @@ static NSString *const lettersSet[maxLettersSet] = {
     for (NSString *filter in self.classFilter) {
         if ([filter hasPrefix:@"!"]) {
             // negative filter - prefixed with !
-            if ([className isLike:[filter substringFromIndex:1]]) {
-                return NO;
+            if ([className isEqualToString:[filter substringFromIndex:1]]) {
+                return YES;
             }
         } else {
             // positive filter
-            if ([className isLike:filter]) {
-                return YES;
+            if ([className isEqualToString:filter]) {
+                return NO;
             }
         }
     }
@@ -459,21 +471,29 @@ static NSString *const lettersSet[maxLettersSet] = {
 }
 
 - (BOOL)shouldSymbolsBeIgnored:(NSString *)symbolName {
-    if ([symbolName hasPrefix:@"."]) { // .cxx_destruct
-        return YES;
+    for (NSString *filter in self.classFilter) {
+            // positive filter
+            if ([symbolName isEqualToString:filter]) {
+                return NO;
+            }
     }
-
-    if ([_forbiddenNames containsObject:symbolName]) {
-        return YES;
-    }
-
-    for (NSString *filter in self.ignoreSymbols) {
-        if ([symbolName isLike:filter]) {
-            return YES;
-        }
-    }
-
-    return NO;
+//
+//    if ([symbolName hasPrefix:@"."]) { // .cxx_destruct
+//        return YES;
+//    }
+//
+//    if ([_forbiddenNames containsObject:symbolName]) {
+//        NSLog(@"shouldSymbolsBeIgnored_forbiddenNames--------- %@",symbolName);
+//        return YES;
+//    }
+//
+//    for (NSString *filter in self.ignoreSymbols) {
+//        if ([symbolName isLike:filter]) {
+//            return YES;
+//        }
+//    }
+//    NSLog(@"shouldSymbolsBeIgnored--------- %@",symbolName);
+    return YES;
 }
 
 #pragma mark - CDVisitor
@@ -496,12 +516,12 @@ static NSString *const lettersSet[maxLettersSet] = {
         _ignored = YES;
     } else if (![self shouldClassBeObfuscated:protocol.name]) {
         NSLog(@"Ignoring @protocol %@", protocol.name);
-        [_forbiddenNames addObject:protocol.name];
-        _ignored = YES;
-    } else {
-        NSLog(@"Obfuscating @protocol %@", protocol.name);
         [_protocolNames addObject:protocol.name];
         _ignored = NO;
+    } else {
+        NSLog(@"Obfuscating @protocol %@", protocol.name);
+        [_forbiddenNames addObject:protocol.name];
+        _ignored = YES;
     }
 }
 
@@ -517,22 +537,23 @@ static NSString *const lettersSet[maxLettersSet] = {
         _ignored = YES;
     } else if (![self shouldClassBeObfuscated:aClass.name]) {
         NSLog(@"Ignoring @class %@", aClass.name);
-        [_forbiddenNames addObject:aClass.name];
-        _ignored = YES;
-    } else {
-        NSLog(@"Obfuscating @class %@", aClass.name);
         [_classNames addObject:aClass.name];
         _ignored = NO;
+    } else {
+        NSLog(@"Obfuscating @class %@", aClass.name);
+        [_forbiddenNames addObject:aClass.name];
+        _ignored = YES;
     }
 }
 
 - (void)willVisitCategory:(CDOCCategory *)category {
-    if (_external) {
-        _ignored = YES;
-    } else {
-        NSLog(@"Obfuscating @category %@+%@", category.className, category.name);
+   if (![self shouldClassBeObfuscated:category.name]) {
         [_categoryNames addObject:category.name];
         _ignored = NO;
+    } else {
+        NSLog(@"Obfuscating @category %@+%@", category.className, category.name);
+        [_forbiddenNames addObject:category.name];
+        _ignored = YES;
     }
 }
 
@@ -543,10 +564,12 @@ static NSString *const lettersSet[maxLettersSet] = {
 - (void)visitAndExplodeMethod:(NSString *)method {
     for (NSString *component in [method componentsSeparatedByString:@":"]) {
         if ([component length]) {
-            if (_ignored) {
-                [_forbiddenNames addObject:component];
-            } else {
+            if (![self shouldClassBeObfuscated:component]) {
                 [_methodNames addObject:component];
+                _ignored = NO;
+            } else {
+                [_forbiddenNames addObject:component];
+                _ignored = YES;
             }
         }
     }
@@ -561,23 +584,39 @@ static NSString *const lettersSet[maxLettersSet] = {
 }
 
 - (void)visitIvar:(CDOCInstanceVariable *)ivar {
-    if (_ignored) {
-        [self visitType:ivar.type];
-    } else {
+   if (![self shouldClassBeObfuscated:ivar.name]) {
         [_ivarNames addObject:ivar.name];
+        _ignored = NO;
+    } else {
+        [self visitType:ivar.type];
+        _ignored = YES;
     }
 }
 
 - (void)visitProperty:(CDOCProperty *)property {
-    if (_ignored) {
+    NSLog(@"visitProperty %@:\n%@", property.className, property);
+   if (![self shouldClassBeObfuscated:property.name]) {
+       NSLog(@"visitProperty %@:\n%@", property.className, property);
+        [_propertyNames addObject:property.name];
+        _ignored = NO;
+    } else {
         [_forbiddenNames addObject:property.name];
         [_forbiddenNames addObject:property.defaultGetter];
         [_forbiddenNames addObject:[@"_" stringByAppendingString:property.name]];
         [_forbiddenNames addObject:property.defaultSetter];
         [self visitType:property.type];
-    } else {
-        [_propertyNames addObject:property.name];
+        _ignored = YES;
     }
+
+//    if (_ignored) {
+//        [_forbiddenNames addObject:property.name];
+//        [_forbiddenNames addObject:property.defaultGetter];
+//        [_forbiddenNames addObject:[@"_" stringByAppendingString:property.name]];
+//        [_forbiddenNames addObject:property.defaultSetter];
+//        [self visitType:property.type];
+//    } else {
+////        [_propertyNames addObject:property.name];
+//    }
 }
 
 - (void)visitRemainingProperties:(CDVisitorPropertyState *)propertyState {
@@ -587,11 +626,11 @@ static NSString *const lettersSet[maxLettersSet] = {
 }
 
 - (void)visitType:(CDType *)type {
+    
     if (_ignored) {
         for (NSString *protocol in type.protocols) {
             [_forbiddenNames addObject:protocol];
         }
-
         if (type.typeName) {
             [_forbiddenNames addObject:[NSString stringWithFormat:@"%@", type.typeName]];
         }

@@ -292,6 +292,7 @@ static BOOL debug = NO;
             [self.resultString appendFormat:@"// Original attribute string: %@\n\n", property.attributeString];
         }
     }
+    NSLog(@"CDTextClassDump: %@",self.resultString);
 }
 
 @end
