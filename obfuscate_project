@@ -1,0 +1,126 @@
+#!/bin/bash
+
+set -e
+
+# The root directory
+# The root directory of the script
+CONFUSE_ROOT_FILE="MXCodeObfuscationFiles"
+SPECIFIED_FILE="$CONFUSE_ROOT_FILE/mx_specifiedFile.txt"
+
+# General build options
+WORKSPACE=MXCloudBrowser.xcworkspace
+# PROJECT=MXCloudBrowser.xcodeproj
+SCHEME=MxBrowser-iPhone
+CONFIGURATION=Debug
+SDK=11.1
+PREFIX=MXCloudBrowser
+# Additional build options
+XCODEBUILD_OPTS=""
+CLASS_GUARD_OPTS="-i 1* -i 2* -i 3* -i 4* -i 5* -i 6* -i 7* -i 8* -i 9* -i 0*"
+
+
+# In case of using Xcode >= 6 and SDK >= 8
+CLASS_GUARD_OPTS_SDK="--sdk-root /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator$SDK.sdk"
+
+####################################################
+# BUILD SCRIPT STARTS HERE
+####################################################
+
+# Just in case
+# echo "WARNING: This will wipe all your not commited changes in your repository"
+# echo "Press Ctrl-C to Cancel or Enter to proceed."
+# read
+
+function echo_and_run() {
+    echo "$@"
+    "$@"
+}
+
+## Specified file list
+if [ ! -f $SPECIFIED_FILE ]
+then
+touch $SPECIFIED_FILE
+fi
+
+while read LINE
+do
+CLASS_GUARD_OPTS=" $CLASS_GUARD_OPTS -F $LINE "
+done  < $SPECIFIED_FILE
+
+# Jump to directory where obfuscate script is located
+pushd $(dirname $0)
+
+# Symbols file path
+SYMBOLS_FILE="$PWD/$CONFUSE_ROOT_FILE/${PREFIX}Symbols.h"
+echo "symbols file path : $SYMBOLS_FILE"
+
+# Clean current workspace
+# echo_and_run git reset --hard
+# echo_and_run git clean -fdx
+
+# Just in case: wipe build/
+
+rm -rf build/
+
+# Automatically detect PODS
+[[ -f Podfile ]] && [[ ! -f Pods/Manifest.lock ]] && pod update --no-repo-update
+[[ -f Pods/Pods.xcodeproj/project.pbxproj ]] && CLASS_GUARD_OPTS="$CLASS_GUARD_OPTS -P Pods/Pods.xcodeproj/project.pbxproj"
+
+# Build project to fetch symbols
+[[ -n "$WORKSPACE" ]] && XCODEBUILD_OPTS="$XCODEBUILD_OPTS -workspace $WORKSPACE"
+[[ -n "$PROJECT" ]] && XCODEBUILD_OPTS="$XCODEBUILD_OPTS -project $PROJECT"
+[[ -n "$SCHEME" ]] && XCODEBUILD_OPTS="$XCODEBUILD_OPTS -scheme $SCHEME"
+[[ -n "$CONFIGURATION" ]] && XCODEBUILD_OPTS="$XCODEBUILD_OPTS -configuration $CONFIGURATION"
+
+xcodeversion=`xcodebuild -version | grep -oE '^Xcode\s+\d+' | grep -oE '\d+'`
+if ((xcodeversion > 5)) || ((SDK >= 8.0))
+then
+    [[ -n "$SDK" ]] && XCODEBUILD_OPTS="$XCODEBUILD_OPTS -sdk iphonesimulator$SDK"
+else
+    [[ -n "$SDK" ]] && XCODEBUILD_OPTS="$XCODEBUILD_OPTS -sdk iphoneos$SDK"
+    [[ -n "$SDK" ]] && CLASS_GUARD_OPTS_SDK="--sdk-ios $SDK"
+fi
+
+echo_and_run xcodebuild $XCODEBUILD_OPTS \
+    clean build \
+    -derivedDataPath build
+    OBJROOT=build/ \
+    SYMROOT=build/
+
+# # Insert SYMBOLS_FILE to all .pch found in project
+# echo_and_run find . -name 'PrefixHeader.pch' -exec sed -i .bak '1i\
+# '"#import \"$SYMBOLS_FILE\"
+# " "{}" \;
+
+# Obfuscate project
+appsNumber=0;
+while read app
+do
+    if ((appsNumber > 0))
+    then
+        echo ""
+        echo ""
+        echo "You cannot use this tool when there is more than one .app file in products. Otherwise, only the first one will be used for obfuscation."
+        echo ""
+        echo ""
+        exit 1
+    fi
+    ((appsNumber+=1))
+
+    TARGET=$(basename "$app" .app)
+    echo "Obfuscating $TARGET in $app..."
+    echo_and_run ios-class-guard \
+        $CLASS_GUARD_OPTS_SDK \
+        $CLASS_GUARD_OPTS \
+        -O "$SYMBOLS_FILE" \
+        "$app/$TARGET"
+done < <(find build/ -name '*.app')
+
+echo ""
+echo ""
+echo "Congratulations! Obfuscation completed. You can now build, test and archive Your project using Xcode, Xctool or Xcodebuid..."
+echo ""
+echo ""
+
+mv "$PWD/symbols.json" "$PWD/$CONFUSE_ROOT_FILE/${PREFIX}Symbols.json"
+
